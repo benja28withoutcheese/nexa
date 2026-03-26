@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexa - Portal & Slap Edition</title>
+    <style>
+        :root {
+            --bg-dark: #1e2024;
+            --bg-panel: #2b2e33;
+            --text-light: #ffffff;
+            --text-muted: #a0a4ab;
+            --accent-blue: #007bff;
+            --accent-hover: #0056b3;
+            --success-green: #28a745;
+            --dirt-color: #5c4033;
+            --dirt-watered: #3b281f;
+            --price-tag: #ffcc00;
+            --water-blue: #0077be;
+            --rarity-legendary: #ff8c00;
+            /* Portal Miner Colors */
+            --portal-purple: #9d50bb;
+            /* Slap Factory Colors */
+            --slap-gold: #ffcc00;
+            --slap-red: #ff4757;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Comic Sans MS", "Comic Sans", "Chalkboard SE", "Comic Neue", cursive, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        #login-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .login-box {
+            background: var(--bg-panel);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 2px solid var(--accent-blue);
+        }
+
+        .login-box input {
+            padding: 12px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            border: none;
+            margin: 20px 0;
+            width: 80%;
+            font-family: inherit;
+        }
+
+        #navbar {
+            background-color: var(--bg-panel);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #111;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-stats { display: flex; gap: 20px; font-size: 1.1rem; font-weight: bold; align-items: center; }
+        .user-tag { color: var(--accent-blue); background: rgba(0,123,255,0.1); padding: 4px 10px; border-radius: 15px; border: 1px solid var(--accent-blue); }
+        .coin-text { color: #ffd700; }
+        .xp-text { color: #00e5ff; }
+        .passive-income { color: #00ff88; font-size: 0.9rem; margin-left: 10px; }
+
+        button {
+            font-family: inherit;
+            background-color: var(--accent-blue);
+            color: white; border: none; padding: 10px 15px;
+            border-radius: 5px; cursor: pointer; font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        button:disabled { background-color: #555; cursor: not-allowed; }
+        button:hover:not(:disabled) { background-color: var(--accent-hover); }
+
+        .screen { display: none; padding: 20px; }
+        .screen.active { display: block; }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .game-card {
+            background-color: var(--bg-panel);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #333;
+        }
+
+        .game-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0,0,0,0.5); }
+        .game-icon { font-size: 3rem; margin-bottom: 10px; }
+
+        /* Slap Factory Styles */
+        .slap-container { display: flex; flex-wrap: wrap; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .slap-main { flex: 2; background: var(--bg-panel); padding: 30px; border-radius: 20px; text-align: center; border: 3px solid var(--slap-gold); }
+        .slap-button { 
+            width: 200px; height: 200px; border-radius: 50%; font-size: 5rem; 
+            background: radial-gradient(circle, #ffd700, #b8860b); border: 8px solid #fff;
+            cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; display: inline-flex;
+            align-items: center; justify-content: center; margin: 20px 0;
+            box-shadow: 0 10px 0 #8b6b00;
+        }
+        .slap-button:active { transform: translateY(8px); box-shadow: 0 2px 0 #8b6b00; }
+        .slap-info { font-size: 1.2rem; margin-bottom: 15px; }
+        .slap-popup { position: absolute; font-weight: bold; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 100; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-100px) scale(1.5); } }
+        
+        .slap-upgrades { flex: 1; background: var(--bg-panel); padding: 20px; border-radius: 20px; border: 2px solid #444; }
+        .upgrade-card { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Portal Miner Styles */
+        .portal-layout { display: flex; flex-wrap: wrap; gap: 20px; }
+        .portal-main { flex: 1; background: var(--bg-panel); padding: 25px; border-radius: 15px; text-align: center; border: 2px solid var(--portal-purple); }
+        .portal-visual { font-size: 5rem; margin: 20px 0; display: inline-block; transition: transform 0.3s; }
+        .portal-active { animation: spin 1s infinite linear; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        .portal-upgrade-box { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin-top: 15px; text-align: left; }
+        .portal-upgrade-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
+        
+        .portal-inventory { flex: 1.5; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 15px; max-height: 500px; overflow-y: auto; }
+        .portal-item-row { background: #3e444d; margin-bottom: 8px; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #777; }
+
+        /* Garden & Other Styles... */
+        .garden-container { display: flex; flex-wrap: wrap; gap: 30px; max-width: 1000px; margin: 0 auto; }
+        .shop-panel, .inventory-panel { background-color: var(--bg-panel); padding: 15px; border-radius: 10px; flex: 1; min-width: 250px; }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background-color: rgba(255,255,255,0.05); margin-bottom: 10px; border-radius: 5px; }
+        .garden-grid { display: grid; grid-template-columns: repeat(4, 80px); gap: 10px; background-color: #222; padding: 15px; border-radius: 10px; margin: 0 auto; }
+        .plot { background-color: var(--dirt-color); border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 2.5rem; cursor: pointer; position: relative; width: 80px; height: 80px; }
+        .progress-bar { position: absolute; bottom: 5px; left: 5px; right: 5px; height: 5px; background-color: #000; border-radius: 5px; overflow: hidden; display: none; }
+        .progress-fill { height: 100%; background-color: var(--success-green); width: 0%; }
+        .selected-seed { border: 2px solid var(--accent-blue); background-color: rgba(0, 123, 255, 0.2); }
+
+        #obby-canvas {
+            width: 100%; height: 300px;
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+            border-radius: 15px; position: relative; overflow: hidden;
+            border: 4px solid #fff; margin-top: 10px; cursor: pointer;
+        }
+        #obby-player { position: absolute; bottom: 20px; left: 50px; font-size: 2.5rem; transition: bottom 0.15s ease-out; z-index: 10; }
+        .obstacle { position: absolute; bottom: 20px; font-size: 2rem; }
+        .obby-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; text-align: center; z-index: 20; }
+
+        .market-canvas { width: 100%; height: 250px; background-color: #111; border-radius: 10px; position: relative; overflow: hidden; border: 3px solid #333; margin-bottom: 20px; }
+        .market-emoji { position: absolute; display: flex; flex-direction: column; align-items: center; cursor: pointer; top: 80px; }
+        .price-label { background: rgba(0,0,0,0.8); color: var(--price-tag); padding: 2px 6px; border-radius: 8px; font-size: 0.8rem; border: 1px solid var(--price-tag); }
+        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; background: #1a1a1a; padding: 10px; border-radius: 8px; }
+        .inv-card { background: #333; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; }
+
+        .fishing-layout { display: flex; flex-wrap: wrap; gap: 20px; }
+        .fishing-main { flex: 2; min-width: 300px; }
+        .fishing-sidebar { flex: 1; min-width: 280px; }
+
+        .fishing-area {
+            background: linear-gradient(to bottom, #1a1a1a, var(--water-blue));
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            border: 3px solid #0056b3;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .fishing-hook { font-size: 4rem; margin: 20px 0; display: inline-block; transition: all 0.3s; }
+        .fish-result { font-size: 1.5rem; margin-top: 15px; min-height: 40px; color: #ffcc00; font-weight: bold; }
+        
+        .rod-shop { background: var(--bg-panel); padding: 15px; border-radius: 10px; border: 1px solid #444; }
+        .rod-item { background: rgba(0,0,0,0.2); margin-bottom: 10px; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; gap: 5px; border: 1px solid transparent; }
+        .rod-item.equipped { border-color: var(--success-green); background: rgba(40, 167, 69, 0.1); }
+        .rod-info { display: flex; justify-content: space-between; align-items: center; }
+        .rod-stats { font-size: 0.75rem; color: var(--text-muted); }
+        
+        .fish-card { background: #3e444d; border: 1px solid #555; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s; }
+        .fish-card:hover { transform: scale(1.05); background: #4a515a; }
+        .fish-card .price { color: #ffd700; font-weight: bold; font-size: 0.9rem; }
+        .fish-card .rarity { font-size: 0.7rem; text-transform: uppercase; color: #aaa; }
+        
+        .bobbing { animation: bob 0.8s infinite ease-in-out; }
+        @keyframes bob {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(20px) rotate(5deg); }
+        }
+
+        .current-rod-display {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #00e5ff;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ACCESS SCREEN -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h1 style="color: var(--accent-blue); letter-spacing: 5px;">NEXA</h1>
+            <p>Enter your username to begin</p>
+            <input type="text" id="username-input" placeholder="Ex: PlayerOne" maxlength="12">
+            <br>
+            <button onclick="accessPlatform()" style="padding: 15px 40px; font-size: 1.2rem;">ACCESS</button>
+        </div>
+    </div>
+
+    <div id="navbar">
+        <div class="nav-stats">
+            <div class="user-tag">👤 <span id="ui-username">Guest</span></div>
+            <div>Level: <span id="ui-level">1</span></div>
+            <div class="xp-text">XP: <span id="ui-xp">0</span>/<span id="ui-max-xp">100</span></div>
+            <div class="coin-text">💰 <span id="ui-coins">0</span></div>
+            <div id="passive-income-ui" class="passive-income" style="display:none;">📈 +$<span id="ui-passive">0</span>/s</div>
+        </div>
+        <div style="font-weight: bold; font-size: 1.5rem; letter-spacing: 3px;">NEXA</div>
+        <button onclick="showScreen('home-screen')">🏠 Home</button>
+    </div>
+
+    <div id="home-screen" class="screen active">
+        <h1 id="welcome-msg">Discover Experiences</h1>
+        <div class="games-grid">
+            <div class="game-card" onclick="showScreen('garden-screen')">
+                <div class="game-icon">🪴</div>
+                <h2>Grow a Garden</h2><p>Grow plants and harvest your fortune.</p>
+            </div>
+            <div class="game-card" onclick="showScreen('obby-screen')">
+                <div class="game-icon">🏃‍♂️</div>
+                <h2>Emoji Jump</h2><p>Jump over obstacles and earn XP!</p>
+            </div>
+            <div class="game-card" onclick="showScreen('market-screen')">
+                <div class="game-icon">🛍️</div>
+                <h2>Steal an Emoji</h2><p>Collect and generate passive income.</p>
+            </div>
+            <div class="game-card" onclick="showScreen('fishing-screen')">
+                <div class="game-icon">🎣</div>
+                <h2>Fishing Game</h2><p>Upgrade your rod and catch legends!</p>
+            </div>
+            <div class="game-card" onclick="showScreen('portal-screen')">
+                <div class="game-icon">🌀</div>
+                <h2>Portal Miner</h2><p>Find artifacts from other worlds!</p>
+            </div>
+            <!-- SLAP FACTORY CARD -->
+            <div class="game-card" onclick="showScreen('slap-screen')">
+                <div class="game-icon">👋</div>
+                <h2>Slap Factory</h2><p>Slap your way to riches! 😂💥🤚</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLAP FACTORY SCREEN -->
+    <div id="slap-screen" class="screen">
+        <h2>👋 Slap Factory</h2>
+        <div class="slap-container">
+            <div class="slap-main">
+                <div class="slap-info">
+                    Current Slap: <strong id="current-slap-name">Normal 👋</strong> | 
+                    Auto-Income: <span style="color:var(--success-green)">+$<span id="ui-slap-ps">0</span>/s</span>
+                </div>
+                <div id="slap-area" style="position: relative;">
+                    <div id="main-slap-btn" class="slap-button" onclick="performSlap(event)">👋</div>
+                </div>
+                <p>Click the giant hand to earn money!</p>
+                <div id="slap-event-log" style="height: 30px; font-weight: bold; color: var(--slap-gold);"></div>
+            </div>
+            <div class="slap-upgrades">
+                <h3>🛠️ Upgrades & Machines</h3>
+                <div id="slap-upgrade-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PORTAL MINER SCREEN -->
+    <div id="portal-screen" class="screen">
+        <h2>🌀 Portal Miner</h2>
+        <div class="portal-layout">
+            <div class="portal-main">
+                <div id="portal-visual" class="portal-visual">🌀</div>
+                <p id="portal-status">Ready to travel...</p>
+                <button id="btn-portal" onclick="openPortal()" style="width:100%; background:var(--portal-purple); font-size:1.2rem;">JUMP INTO PORTAL</button>
+                
+                <div class="portal-upgrade-box">
+                    <h3>Portal Tech</h3>
+                    <div class="portal-upgrade-item">
+                        <span>Speed (Lv <span id="lvl-speed">0</span>)</span>
+                        <button onclick="buyPortalUpg('speed')">$150</button>
+                    </div>
+                    <div class="portal-upgrade-item">
+                        <span>Luck (Lv <span id="lvl-luck">0</span>)</span>
+                        <button onclick="buyPortalUpg('luck')">$300</button>
+                    </div>
+                </div>
+            </div>
+            <div class="portal-inventory">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h3>Dimensional Vault</h3>
+                    <button onclick="sellAllPortal()" style="background:var(--success-green); padding:5px 10px;">Sell All</button>
+                </div>
+                <div id="portal-inv-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="garden-screen" class="screen">
+        <h2>🪴 Grow a Garden</h2>
+        <div class="garden-container">
+            <div class="inventory-panel"><h3>Your Inventory</h3><div id="inventory-list"></div></div>
+            <div class="garden-grid" id="garden-grid"></div>
+            <div class="shop-panel"><h3>Shop</h3><div id="shop-list"></div></div>
+        </div>
+    </div>
+
+    <div id="obby-screen" class="screen">
+        <h2>🏃‍♂️ Emoji Jump (Obby)</h2>
+        <div id="obby-canvas" onclick="obbyJump()">
+            <div id="obby-player">🏃</div>
+            <div id="obby-start-msg" class="obby-msg">
+                <h3>Watch out for the spikes!</h3>
+                <button onclick="startObby(event)">Start Game</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="market-screen" class="screen">
+        <h2>🛍️ Steal an Emoji</h2>
+        <div class="market-canvas" id="market-canvas"></div>
+        <div id="market-inventory" class="inventory-grid"></div>
+    </div>
+
+    <div id="fishing-screen" class="screen">
+        <h2>🎣 Fishing Game</h2>
+        <div class="fishing-layout">
+            <div class="fishing-main">
+                <div class="fishing-area">
+                    <div class="current-rod-display">Equipped: <span id="display-equipped-rod">Basic</span></div>
+                    <div id="fishing-hook" class="fishing-hook">🎣</div>
+                    <div id="fish-result" class="fish-result">Cast the rod to start!</div>
+                    <br><button id="btn-cast" onclick="castRod()" style="padding: 15px 30px; font-size: 1.2rem;">Cast Rod</button>
+                </div>
+                <div class="fishing-inventory"><h3>🐟 Your Bucket (Click to sell)</h3><div id="fish-inventory-list" class="inventory-grid"></div></div>
+            </div>
+            <div class="fishing-sidebar"><div class="rod-shop"><h3>🛒 Rod Shop</h3><div id="rod-shop-list"></div></div></div>
+        </div>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+            switch(type) {
+                case 'click':
+                    osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(10, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(); osc.stop(now + 0.1); break;
+                case 'slap':
+                    osc.type = 'square'; osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(50, now + 0.1);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(); osc.stop(now + 0.1); break;
+                case 'jump':
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.2);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(); osc.stop(now + 0.2); break;
+                case 'harvest':
+                    osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(); osc.stop(now + 0.1); break;
+                case 'buy':
+                    osc.type = 'square'; osc.frequency.setValueAtTime(600, now); osc.frequency.setValueAtTime(800, now + 0.05);
+                    gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(); osc.stop(now + 0.1); break;
+                case 'hit':
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.linearRampToValueAtTime(10, now + 0.3);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(); osc.stop(now + 0.3); break;
+                case 'splash':
+                    const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
+                    const data = buffer.getChannelData(0); for (let i = 0; i < buffer.length; i++) data[i] = Math.random() * 2 - 1;
+                    const noise = audioCtx.createBufferSource(); noise.buffer = buffer;
+                    const nGain = audioCtx.createGain(); nGain.gain.setValueAtTime(0.1, now); nGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    noise.connect(nGain); nGain.connect(audioCtx.destination); noise.start(); break;
+            }
+        }
+
+        const SEED_TYPES = {
+            'wheat': { id: 'wheat', name: 'Wheat', icon: '🌾', seedIcon: '🌱', cost: 0, time: 5, reward: 2, xp: 10 },
+            'tomato': { id: 'tomato', name: 'Tomato', icon: '🍅', seedIcon: '🌰', cost: 10, time: 10, reward: 15, xp: 25 },
+            'carrot': { id: 'carrot', name: 'Carrot', icon: '🥕', seedIcon: '🥜', cost: 25, time: 20, reward: 40, xp: 50 },
+            'corn': { id: 'corn', name: 'Corn', icon: '🌽', seedIcon: '🌱', cost: 100, time: 45, reward: 250, xp: 100 },
+            'sunflower': { id: 'sunflower', name: 'Sunflower', icon: '🌻', seedIcon: '🌻', cost: 500, time: 90, reward: 1500, xp: 500 },
+            'melon': { id: 'melon', name: 'Melon', icon: '🍉', seedIcon: 'Seeds', cost: 2000, time: 180, reward: 8000, xp: 1500 },
+            'pumpkin': { id: 'pumpkin', name: 'Great Pumpkin', icon: '🎃', seedIcon: '🎃', cost: 10000, time: 600, reward: 1000000, xp: 10000 }
+        };
+
+        const MARKET_EMOJIS = [
+            { id: 'brain', char: '🧠', price: 50, speed: 2 },
+            { id: 'pizza', char: '🍕', price: 150, speed: 4 },
+            { id: 'gem', char: '💎', price: 500, speed: 6 }
+        ];
+
+        const FISH_DATA = [
+            { emoji: '🐟', name: 'Common', rarity: 'Common', value: 5, chance: 0.60 },
+            { emoji: '🐠', name: 'Rare', rarity: 'Rare', value: 15, chance: 0.25 },
+            { emoji: '🐡', name: 'Epic', rarity: 'Epic', value: 40, chance: 0.10 },
+            { emoji: '🦈', name: 'Legendary', rarity: 'Legendary', value: 120, chance: 0.05 }
+        ];
+
+        const RODS_DATA = [
+            { id: 'rod_1', name: 'Basic Rod 🎣', price: 0, luck: 1, speedMult: 1, icon: '🎣' },
+            { id: 'rod_2', name: 'Advanced Rod 🪝', price: 100, luck: 1.5, speedMult: 0.8, icon: '🦯' },
+            { id: 'rod_3', name: 'Epic Rod ✨🎣', price: 400, luck: 2.5, speedMult: 0.6, icon: '🔱' },
+            { id: 'rod_4', name: 'Legendary Rod 👑', price: 1200, luck: 5, speedMult: 0.4, icon: '☄️' }
+        ];
+
+        const PORTAL_ITEMS = [
+            { emoji: '🪨', name: 'Space Rock', value: 10, weight: 60, rarity: 'Common' },
+            { emoji: '🔮', name: 'Void Core', value: 50, weight: 25, rarity: 'Rare' },
+            { emoji: '💠', name: 'Star Fragment', value: 150, weight: 10, rarity: 'Epic' },
+            { emoji: '🔱', name: 'Godly Relic', value: 600, weight: 5, rarity: 'Legendary' }
+        ];
+
+        const PORTAL_MUTATIONS = [
+            { char: '🔥', mult: 1.5 }, { char: '❄️', mult: 1.8 }, { char: '⚡', mult: 2.2 }
+        ];
+
+        // --- SLAP FACTORY DATA ---
+        const SLAP_TYPES = [
+            { name: "Normal Slap", emoji: "👋", value: 1, color: "#fff" },
+            { name: "Fire Slap", emoji: "🔥", value: 5, color: "#ff4757" },
+            { name: "Electric Slap", emoji: "⚡", value: 15, color: "#eccc68" },
+            { name: "Fish Slap", emoji: "🐟", value: 40, color: "#70a1ff" },
+            { name: "Legendary Slap", emoji: "👑", value: 150, color: "#ffa502" }
+        ];
+
+        const SLAP_MACHINES = {
+            robot: { name: "Slap Robot 🤖", cost: 100, income: 2, count: 0 },
+            factory: { name: "Slap Factory 🏭", cost: 500, income: 10, count: 0 },
+            ghost: { name: "Ghost Slapper 👻", cost: 2000, income: 50, count: 0 }
+        };
+
+        const SLAP_UPGRADES = {
+            critChance: { name: "Extra Luck 🍀", cost: 150, level: 0, bonus: 0.05 },
+            power: { name: "Stronger Arm 💪", cost: 200, level: 0, bonus: 2 }
+        };
+
+        let gameState = {
+            username: '', gardenCoins: 0, marketCoins: 100, level: 1, xp: 0,
+            inventory: { 'wheat': 5 }, garden: Array(16).fill(null),
+            collection: [], fishInventory: [], unlockedRods: ['rod_1'], equippedRod: 'rod_1', currentScreen: 'home-screen',
+            portalInv: [], portalUpgs: { speed: 0, luck: 0 }, portalTimer: 3000, portalLuck: 0.1,
+            // Slap State
+            slapLevel: 0, slapCritChance: 0.05, slapMachines: { robot: 0, factory: 0, ghost: 0 }, slapUpgs: { critChance: 0, power: 0 }
+        };
+
+        let selectedSeedId = null;
+        let gameLoopInterval, marketInterval, moveInterval, obbyInterval, slapInterval;
+        let isJumping = false, obbyActive = false, obstacles = [], lastObstacleTime = 0, isFishing = false;
+
+        function getMultiplier() { return 1; }
+
+        function accessPlatform() {
+            playSound('click');
+            const name = document.getElementById('username-input').value.trim();
+            if (name.length < 3) return alert("Min 3 chars");
+            gameState.username = name;
+            document.getElementById('ui-username').innerText = name;
+            document.getElementById('welcome-msg').innerText = `Welcome, ${name}`;
+            document.getElementById('login-screen').style.display = 'none';
+        }
+
+        function updateGlobalUI() {
+            document.getElementById('ui-level').innerText = gameState.level;
+            document.getElementById('ui-xp').innerText = Math.floor(gameState.xp);
+            document.getElementById('ui-max-xp').innerText = gameState.level * 100;
+            const coinsUI = document.getElementById('ui-coins');
+            const passiveUI = document.getElementById('passive-income-ui');
+            
+            const marketIncome = gameState.collection.reduce((sum, item) => sum + (item.price * 0.1), 0);
+            const slapIncome = (gameState.slapMachines.robot * SLAP_MACHINES.robot.income) + 
+                             (gameState.slapMachines.factory * SLAP_MACHINES.factory.income) + 
+                             (gameState.slapMachines.ghost * SLAP_MACHINES.ghost.income);
+
+            if (gameState.currentScreen === 'garden-screen') {
+                coinsUI.innerText = Math.floor(gameState.gardenCoins);
+                passiveUI.style.display = 'none';
+            } else {
+                coinsUI.innerText = Math.floor(gameState.marketCoins);
+                passiveUI.style.display = 'block';
+                document.getElementById('ui-passive').innerText = (marketIncome + slapIncome).toFixed(1);
+            }
+
+            if(gameState.currentScreen === 'slap-screen') {
+                document.getElementById('ui-slap-ps').innerText = slapIncome;
+                renderSlapUpgrades();
+            }
+
+            if (gameState.xp >= gameState.level * 100) { gameState.xp = 0; gameState.level++; updateGlobalUI(); }
+        }
+
+        // AUTO INCOME LOOP (Global)
+        setInterval(() => {
+            const marketIncome = gameState.collection.reduce((sum, item) => sum + (item.price * 0.1), 0);
+            const slapIncome = (gameState.slapMachines.robot * SLAP_MACHINES.robot.income) + 
+                             (gameState.slapMachines.factory * SLAP_MACHINES.factory.income) + 
+                             (gameState.slapMachines.ghost * SLAP_MACHINES.ghost.income);
+            
+            const total = (marketIncome + slapIncome) * getMultiplier();
+            if (total > 0) { 
+                gameState.marketCoins += total; 
+                if(gameState.currentScreen === 'slap-screen' && Math.random() < 0.2) createSlapParticle("🤖", null);
+                updateGlobalUI(); 
+            }
+        }, 1000);
+
+        function showScreen(screenId) {
+            playSound('click');
+            gameState.currentScreen = screenId;
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            
+            if (screenId === 'garden-screen') initGarden();
+            else if (screenId === 'market-screen') { startMarket(); renderMarketInventory(); }
+            else if (screenId === 'fishing-screen') { renderFishInventory(); renderRodShop(); }
+            else if (screenId === 'portal-screen') renderPortalInv();
+            else if (screenId === 'slap-screen') updateGlobalUI();
+            
+            updateGlobalUI();
+        }
+
+        // --- SLAP FACTORY LOGIC ---
+        function performSlap(event) {
+            playSound('slap');
+            const slapType = SLAP_TYPES[gameState.slapLevel];
+            let baseWin = slapType.value + (gameState.slapUpgs.power * SLAP_UPGRADES.power.bonus);
+            let multiplier = 1;
+            let msg = "";
+
+            const rng = Math.random();
+            if (rng < 0.05) { // FAIL
+                baseWin = 0; msg = "🤯 FAIL! $0"; playSound('hit');
+            } else if (rng < (0.05 + gameState.slapCritChance)) { // CRIT
+                multiplier = 2; msg = "💥 CRITICAL x2!";
+            } else if (rng < 0.01) { // ULTRA
+                multiplier = 5; msg = "🤯 ULTRA SLAP x5!";
+            }
+
+            const finalWin = baseWin * multiplier;
+            gameState.marketCoins += finalWin;
+            gameState.xp += 2;
+
+            document.getElementById('slap-event-log').innerText = msg;
+            createSlapParticle(slapType.emoji, event);
+            
+            // Check for slap evolution
+            if (gameState.marketCoins > (slapType.value * 500) && gameState.slapLevel < SLAP_TYPES.length - 1) {
+                gameState.slapLevel++;
+                document.getElementById('main-slap-btn').innerText = SLAP_TYPES[gameState.slapLevel].emoji;
+                document.getElementById('current-slap-name').innerText = SLAP_TYPES[gameState.slapLevel].name;
+            }
+
+            updateGlobalUI();
+        }
+
+        function createSlapParticle(emoji, event) {
+            const area = document.getElementById('slap-area');
+            const p = document.createElement('div');
+            p.className = 'slap-popup';
+            p.innerText = emoji + (Math.random() > 0.5 ? "💥" : "🤚");
+            
+            let x = 100, y = 100;
+            if(event) {
+                const rect = area.getBoundingClientRect();
+                x = event.clientX - rect.left;
+                y = event.clientY - rect.top;
+            } else {
+                x = Math.random() * 200; y = Math.random() * 200;
+            }
+
+            p.style.left = x + 'px';
+            p.style.top = y + 'px';
+            area.appendChild(p);
+            setTimeout(() => p.remove(), 800);
+        }
+
+        function renderSlapUpgrades() {
+            const list = document.getElementById('slap-upgrade-list');
+            list.innerHTML = "";
+            
+            // Machines
+            for(let key in SLAP_MACHINES) {
+                const m = SLAP_MACHINES[key];
+                const count = gameState.slapMachines[key];
+                const cost = Math.floor(m.cost * Math.pow(1.2, count));
+                list.innerHTML += `<div class="upgrade-card">
+                    <div><strong>${m.name}</strong><br><small>+$${m.income}/s (Own: ${count})</small></div>
+                    <button onclick="buySlapMachine('${key}', ${cost})">$${cost}</button>
+                </div>`;
+            }
+
+            // Upgrades
+            for(let key in SLAP_UPGRADES) {
+                const u = SLAP_UPGRADES[key];
+                const level = gameState.slapUpgs[key];
+                const cost = Math.floor(u.cost * Math.pow(1.5, level));
+                list.innerHTML += `<div class="upgrade-card">
+                    <div><strong>${u.name}</strong><br><small>Level ${level}</small></div>
+                    <button onclick="buySlapUpgrade('${key}', ${cost})">$${cost}</button>
+                </div>`;
+            }
+        }
+
+        function buySlapMachine(key, cost) {
+            if(gameState.marketCoins >= cost) {
+                playSound('buy');
+                gameState.marketCoins -= cost;
+                gameState.slapMachines[key]++;
+                updateGlobalUI();
+            }
+        }
+
+        function buySlapUpgrade(key, cost) {
+            if(gameState.marketCoins >= cost) {
+                playSound('buy');
+                gameState.marketCoins -= cost;
+                gameState.slapUpgs[key]++;
+                if(key === 'critChance') gameState.slapCritChance += SLAP_UPGRADES.critChance.bonus;
+                updateGlobalUI();
+            }
+        }
+
+        // --- PORTAL MINER LOGIC ---
+        function openPortal() {
+            const btn = document.getElementById('btn-portal');
+            const visual = document.getElementById('portal-visual');
+            const status = document.getElementById('portal-status');
+            btn.disabled = true;
+            visual.classList.add('portal-active');
+            status.innerText = "Scanning dimensions...";
+            playSound('splash');
+            setTimeout(() => {
+                const roll = Math.random() * 100;
+                let item = PORTAL_ITEMS[0];
+                if(roll < 5) item = PORTAL_ITEMS[3];
+                else if(roll < 15) item = PORTAL_ITEMS[2];
+                else if(roll < 40) item = PORTAL_ITEMS[1];
+                let mutation = "";
+                let val = item.value;
+                if(Math.random() < gameState.portalLuck) {
+                    const m = PORTAL_MUTATIONS[Math.floor(Math.random()*PORTAL_MUTATIONS.length)];
+                    mutation = m.char; val *= m.mult;
+                }
+                gameState.portalInv.unshift({ ...item, mutation, finalVal: Math.floor(val * getMultiplier()), id: Date.now() });
+                gameState.xp += 15;
+                visual.classList.remove('portal-active');
+                btn.disabled = false;
+                status.innerText = "Artifact Found!";
+                renderPortalInv(); updateGlobalUI();
+            }, gameState.portalTimer);
+        }
+
+        function renderPortalInv() {
+            const list = document.getElementById('portal-inv-list');
+            list.innerHTML = '';
+            gameState.portalInv.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'portal-item-row';
+                if(item.rarity === 'Legendary') div.style.borderColor = 'var(--rarity-legendary)';
+                div.innerHTML = `<div><strong>${item.emoji} ${item.name}</strong> ${item.mutation}</div>
+                                 <div style="text-align:right"><span style="color:var(--price-tag)">$${item.finalVal}</span><br>
+                                 <button onclick="sellPortal(${item.id})" style="font-size:0.6rem; padding:2px 5px;">Sell</button></div>`;
+                list.appendChild(div);
+            });
+        }
+
+        function sellPortal(id) {
+            const idx = gameState.portalInv.findIndex(i => i.id === id);
+            if(idx > -1) {
+                playSound('harvest');
+                gameState.marketCoins += gameState.portalInv[idx].finalVal;
+                gameState.portalInv.splice(idx, 1);
+                renderPortalInv(); updateGlobalUI();
+            }
+        }
+
+        function sellAllPortal() {
+            gameState.portalInv.forEach(i => gameState.marketCoins += i.finalVal);
+            gameState.portalInv = [];
+            playSound('harvest');
+            renderPortalInv(); updateGlobalUI();
+        }
+
+        function buyPortalUpg(type) {
+            if(type === 'speed' && gameState.marketCoins >= 150) {
+                gameState.marketCoins -= 150; gameState.portalUpgs.speed++;
+                gameState.portalTimer = Math.max(500, gameState.portalTimer - 400);
+            } else if(type === 'luck' && gameState.marketCoins >= 300) {
+                gameState.marketCoins -= 300; gameState.portalUpgs.luck++;
+                gameState.portalLuck += 0.05;
+            } else { return alert("Not enough coins!"); }
+            playSound('buy'); updateGlobalUI();
+        }
+
+        // GARDEN FUNCTIONS
+        function initGarden() { renderInventory(); renderShop(); renderGardenGrid(); gameLoopInterval = setInterval(updatePlants, 100); }
+        function renderShop() {
+            const list = document.getElementById('shop-list'); list.innerHTML = '';
+            for (const key in SEED_TYPES) {
+                const item = SEED_TYPES[key];
+                list.innerHTML += `<div class="shop-item"><span>${item.icon} ${item.name}</span><button onclick="buySeed('${key}')">💰 ${item.cost}</button></div>`;
+            }
+        }
+        function buySeed(seedId) {
+            const cost = SEED_TYPES[seedId].cost;
+            if (gameState.gardenCoins >= cost) {
+                playSound('buy');
+                gameState.gardenCoins -= cost;
+                gameState.inventory[seedId] = (gameState.inventory[seedId] || 0) + 1;
+                renderInventory(); updateGlobalUI();
+            }
+        }
+        function renderInventory() {
+            const invDiv = document.getElementById('inventory-list'); invDiv.innerHTML = '';
+            for (const key in gameState.inventory) {
+                if (gameState.inventory[key] > 0) {
+                    const item = SEED_TYPES[key];
+                    const div = document.createElement('div');
+                    div.className = `shop-item ${selectedSeedId === key ? 'selected-seed' : ''}`;
+                    div.onclick = () => { playSound('click'); selectedSeedId = key; renderInventory(); };
+                    div.innerHTML = `<span>${item.icon} ${item.name}</span> <span>x${gameState.inventory[key]}</span>`;
+                    invDiv.appendChild(div);
+                }
+            }
+        }
+        function renderGardenGrid() {
+            const grid = document.getElementById('garden-grid'); grid.innerHTML = '';
+            gameState.garden.forEach((plot, index) => {
+                const div = document.createElement('div'); div.className = 'plot';
+                div.onclick = () => handlePlotClick(index);
+                div.innerHTML = `<div class="progress-bar"><div class="progress-fill" id="fill-${index}"></div></div><div id="emoji-${index}"></div>`;
+                grid.appendChild(div);
+            });
+        }
+        function handlePlotClick(index) {
+            let plot = gameState.garden[index];
+            if (!plot && selectedSeedId && gameState.inventory[selectedSeedId] > 0) {
+                playSound('click');
+                gameState.inventory[selectedSeedId]--;
+                gameState.garden[index] = { seedId: selectedSeedId, plantedAt: Date.now(), ready: false };
+                renderInventory();
+            } else if (plot && plot.ready) {
+                playSound('harvest');
+                gameState.gardenCoins += (SEED_TYPES[plot.seedId].reward * getMultiplier());
+                gameState.xp += (SEED_TYPES[plot.seedId].xp * getMultiplier());
+                gameState.garden[index] = null;
+                renderGardenGrid();
+            }
+            updateGlobalUI();
+        }
+        function updatePlants() {
+            const now = Date.now();
+            gameState.garden.forEach((plot, index) => {
+                const emojiDiv = document.getElementById(`emoji-${index}`);
+                const fill = document.getElementById(`fill-${index}`);
+                if (!plot || !emojiDiv) return;
+                const info = SEED_TYPES[plot.seedId];
+                const passed = now - plot.plantedAt;
+                if (passed >= info.time * 1000) {
+                    plot.ready = true; emojiDiv.innerText = info.icon; fill.parentElement.style.display = 'none';
+                } else {
+                    emojiDiv.innerText = info.seedIcon; fill.parentElement.style.display = 'block';
+                    fill.style.width = `${(passed / (info.time * 1000)) * 100}%`;
+                }
+            });
+        }
+
+        // OBBY
+        function startObby(e) { if(e) e.stopPropagation(); playSound('click'); obbyActive = true; document.getElementById('obby-start-msg').style.display = 'none'; obstacles.forEach(o => o.el.remove()); obstacles = []; obbyInterval = setInterval(updateObby, 20); }
+        function stopObby() { obbyActive = false; clearInterval(obbyInterval); document.getElementById('obby-start-msg').style.display = 'block'; }
+        function obbyJump() { if (isJumping || !obbyActive) return; playSound('jump'); isJumping = true; const p = document.getElementById('obby-player'); p.style.bottom = '130px'; setTimeout(() => { p.style.bottom = '20px'; setTimeout(() => isJumping = false, 250); }, 350); }
+        function updateObby() {
+            if (Date.now() - lastObstacleTime > 1500 && Math.random() < 0.03) { spawnObstacle(); lastObstacleTime = Date.now(); }
+            const pRect = document.getElementById('obby-player').getBoundingClientRect();
+            obstacles.forEach((obj, i) => {
+                obj.x -= 7; obj.el.style.left = obj.x + 'px';
+                if (pRect.left < obj.el.getBoundingClientRect().right - 10 && pRect.right > obj.el.getBoundingClientRect().left + 10 && pRect.top < obj.el.getBoundingClientRect().bottom && pRect.bottom > obj.el.getBoundingClientRect().top) { playSound('hit'); alert("Hit!"); stopObby(); }
+                if (obj.x < -50) { obj.el.remove(); obstacles.splice(i, 1); gameState.xp += (5 * getMultiplier()); updateGlobalUI(); }
+            });
+        }
+        function spawnObstacle() { const c = document.getElementById('obby-canvas'); const d = document.createElement('div'); d.className = 'obstacle'; d.innerText = '🌵'; d.style.left = c.offsetWidth + 'px'; c.appendChild(d); obstacles.push({ el: d, x: c.offsetWidth }); }
+
+        // MARKET
+        function startMarket() { marketInterval = setInterval(spawnEmoji, 2000); moveInterval = setInterval(() => { document.querySelectorAll('.market-emoji').forEach(el => { let x = parseFloat(el.getAttribute('data-x')) - parseFloat(el.getAttribute('data-speed')); el.style.transform = `translateX(${x}px)`; el.setAttribute('data-x', x); if(x < -100) el.remove(); }); }, 16); }
+        function spawnEmoji() {
+            const canvas = document.getElementById('market-canvas'); if(!canvas) return;
+            const data = MARKET_EMOJIS[Math.floor(Math.random() * MARKET_EMOJIS.length)];
+            const div = document.createElement('div'); div.className = 'market-emoji'; div.setAttribute('data-x', canvas.offsetWidth + 50); div.setAttribute('data-speed', data.speed);
+            div.style.transform = `translateX(${canvas.offsetWidth + 50}px)`;
+            div.innerHTML = `<span class="price-label">$${data.price}</span><span>${data.char}</span>`;
+            div.onclick = () => { if(gameState.marketCoins >= data.price) { playSound('buy'); gameState.marketCoins -= data.price; gameState.collection.push({ char: data.char, price: data.price }); div.remove(); renderMarketInventory(); updateGlobalUI(); } };
+            canvas.appendChild(div);
+        }
+        function renderMarketInventory() {
+            const grid = document.getElementById('market-inventory'); grid.innerHTML = '';
+            gameState.collection.forEach((item, index) => {
+                const div = document.createElement('div'); div.className = 'inv-card';
+                div.innerHTML = `<div>${item.char}</div><div style="color:#0f8; font-size:0.7rem">+$${((item.price*0.1) * getMultiplier()).toFixed(1)}/s</div>`;
+                div.onclick = () => { playSound('harvest'); gameState.marketCoins += (item.price * 0.5 * getMultiplier()); gameState.collection.splice(index, 1); renderMarketInventory(); updateGlobalUI(); };
+                grid.appendChild(div);
+            });
+        }
+
+        // FISHING
+        function renderRodShop() {
+            const list = document.getElementById('rod-shop-list'); list.innerHTML = '';
+            RODS_DATA.forEach(rod => {
+                const isUnlocked = gameState.unlockedRods.includes(rod.id); const isEquipped = gameState.equippedRod === rod.id;
+                const div = document.createElement('div'); div.className = `rod-item ${isEquipped ? 'equipped' : ''}`;
+                let btn = isEquipped ? `<button disabled>EQUIPPED</button>` : isUnlocked ? `<button onclick="equipRod('${rod.id}')">EQUIP</button>` : `<button onclick="buyRod('${rod.id}')">BUY $${rod.price}</button>`;
+                div.innerHTML = `<div class="rod-info"><strong>${rod.name}</strong> ${btn}</div><div class="rod-stats">Luck: x${rod.luck}</div>`;
+                list.appendChild(div);
+            });
+            document.getElementById('display-equipped-rod').innerText = RODS_DATA.find(r => r.id === gameState.equippedRod).name;
+        }
+        function buyRod(id) { const r = RODS_DATA.find(x => x.id === id); if (gameState.marketCoins >= r.price) { playSound('buy'); gameState.marketCoins -= r.price; gameState.unlockedRods.push(id); equipRod(id); } }
+        function equipRod(id) { playSound('click'); gameState.equippedRod = id; document.getElementById('fishing-hook').innerText = RODS_DATA.find(r => r.id === id).icon; renderRodShop(); updateGlobalUI(); }
+        function castRod() { if(isFishing) return; playSound('splash'); isFishing = true; const btn = document.getElementById('btn-cast'); const hook = document.getElementById('fishing-hook'); btn.disabled = true; hook.classList.add('bobbing');
+            setTimeout(() => { catchFish(); isFishing = false; btn.disabled = false; hook.classList.remove('bobbing'); }, 3000);
+        }
+        function catchFish() {
+            const roll = Math.random(); let caught = FISH_DATA[0];
+            if (roll < 0.05) caught = FISH_DATA[3]; else if (roll < 0.15) caught = FISH_DATA[2]; else if (roll < 0.40) caught = FISH_DATA[1];
+            gameState.fishInventory.push({...caught}); renderFishInventory();
+        }
+        function renderFishInventory() {
+            const list = document.getElementById('fish-inventory-list'); list.innerHTML = '';
+            gameState.fishInventory.forEach((f, i) => {
+                const div = document.createElement('div'); div.className = 'fish-card';
+                div.innerHTML = `<span>${f.emoji}</span><span class="price">$${(f.value * getMultiplier()).toFixed(0)}</span>`;
+                div.onclick = () => { playSound('harvest'); gameState.marketCoins += (f.value * getMultiplier()); gameState.fishInventory.splice(i, 1); renderFishInventory(); updateGlobalUI(); };
+                list.appendChild(div);
+            });
+        }
+
+        updateGlobalUI();
+    </script>
+</body>
+</html>
